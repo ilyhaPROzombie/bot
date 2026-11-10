@@ -3,9 +3,6 @@ import json
 import re
 import sqlite3
 import html
-import os
-import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.filters import Command
@@ -21,26 +18,6 @@ KWORK_COOKIE = "_ym_uid=1776869265662196346; uad=2066455069e8e074164fb919344731;
 CHECK_INTERVAL = 45  # Интервал проверки новых проектов в секундах
 EXCLUDED_CATEGORIES = {"Компьютерная и IT помощь"}
 # =============================================
-
-# --- МИНИ-СЕРВЕР ДЛЯ УДОВЛЕТВОРЕНИЯ RENDER (WEB SERVICE) ---
-class HealthCheckHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-type", "text/plain")
-        self.end_headers()
-        self.wfile.write(b"Bot is alive!")
-    
-    def log_message(self, format, *args):
-        pass  # Отключаем лишний спам в логах от HTTP-запросов
-
-def run_http_server():
-    port = int(os.environ.get("PORT", 10000))
-    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
-    server.serve_forever()
-
-# Запускаем мини-сервер в отдельном фоновом потоке, чтобы он занимал порт
-threading.Thread(target=run_http_server, daemon=True).start()
-# -----------------------------------------------------------
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
