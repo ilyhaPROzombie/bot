@@ -3,14 +3,15 @@ import json
 import re
 import sqlite3
 import html
+import os
+from aiohttp import web
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.filters import Command
-import aiohttp
 
 # ================= НАСТРОЙКИ =================
 BOT_TOKEN = "9071887061:AAF_eh-XTOzYSgVfzH4-Y2QeJUx-36qySV4"
-ADMIN_CHAT_ID = 781413995  # Ваш числовой Telegram ID
+ADMIN_CHAT_ID = 781413995 
 
 # Скопируйте сюда вашу строку Cookie с kwork.ru/projects
 KWORK_COOKIE = "_ym_uid=1776869265662196346; uad=2066455069e8e074164fb919344731; list_type_sdisplay=table; ref=531396; _ym_d=1793900968; referrer_url=https%3A%2F%2Fkwork.ru%2Fprojects; csrf_user_token=7b1811e934c768d4c73a3c3356b9ada2; RORSSQIHEK=852fec8b0d78eeee3e8a2ac7362fae5c; slrememberme=20664550_%242y%2412%24pmv5Nk2RozN.GfvkmtcY%2FeQTsBjQT8QqDGlBEPb9V7n%2FlnjwoaTcu; ref_redirect_save=531396; gclid=Cj0KCQiAnsvXBhCqARIsAHKgGNbT8atk8yM5q-Jz6OyTsmiSXIRDutpER_CTEPTx6RzJL0rP1ou17PcaAo-mEALw_wcB; landed_page=%2F%3Fgad_source%3D1%26gad_campaignid%3D24016514384%26gbraid%3D0AAAAA-e_KnqhtnT8WOwS8dHOUjMRUnWy6%26gclid%3DCj0KCQiAnsvXBhCqARIsAHKgGNbT8atk8yM5q-Jz6OyTsmiSXIRDutpER_CTEPTx6RzJL0rP1ou17PcaAo-mEALw_wcB; _ym_isad=1"
@@ -244,7 +245,23 @@ async def parser_loop():
         await asyncio.sleep(CHECK_INTERVAL)
 
 
+# Функция веб-сервера для удержания порта Render
+async def handle_ping(request):
+    return web.Response(text="Bot is running!")
+
+
 async def main():
+    # Настраиваем веб-приложение для порта Render
+    app = web.Application()
+    app.router.add_get("/", handle_ping)
+    
+    port = int(os.environ.get("PORT", 10000))
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
+    # Запускаем парсер и телеграм-бота
     asyncio.create_task(parser_loop())
     await dp.start_polling(bot)
 
