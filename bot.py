@@ -187,6 +187,39 @@ async def cmd_start(message: Message):
         reply_markup=kb
     )
 
+####################################
+@dp.message(Command("test"))
+async def cmd_test(message: Message):
+    if message.from_user.id != ADMIN_CHAT_ID:
+        return
+    
+    # Создаем фейковый тестовый проект
+    fake_item = {
+        "id": 123456,
+        "name": "Тестовая верстка сайта по макету",
+        "description": "Это тестовое описание заказа для проверки работы бота на Render. Всё работает отлично!",
+        "priceLimit": "5000",
+        "categoryName": "Верстка",
+        "kworkCount": 2,
+        "timeLeft": "2 дня",
+        "user": {
+            "username": "test_buyer",
+            "data": {
+                "wants_hired_percent": 85,
+                "wants_count": 10,
+                "active_wants": 1
+            }
+        }
+    }
+    
+    text, kb = format_project_card(fake_item)
+    await message.answer(
+        "🧪 <b>Тестовое сообщение парсера:</b>\n\n" + text,
+        parse_mode="HTML",
+        disable_web_page_preview=True,
+        reply_markup=kb
+    )
+####################################
 
 @dp.callback_query(F.data == "toggle_run")
 async def cb_toggle_run(call: CallbackQuery):
