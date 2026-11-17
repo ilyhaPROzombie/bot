@@ -1,8 +1,8 @@
 import json, os, re, sys, time, html
 import requests
 
-BOT_TOKEN = os.environ["BOT_TOKEN"]
-CHAT_ID = os.environ["CHAT_ID"]
+BOT_TOKEN = "9071887061:AAF_eh-XTOzYSgVfzH4-Y2QeJUx-36qySV4"
+CHAT_ID = "781413995"
 
 # Вставьте сюда URL(ы) со страницы проектов с вашими фильтрами
 URLS = [
@@ -17,11 +17,12 @@ HEADERS = {
     "Accept-Language": "ru-RU,ru;q=0.9",
 }
 COOKIES = {}
-for part in os.environ.get("KWORK_COOKIES", "").split(";"):
-    if "=" in part:
-        k, v = part.strip().split("=", 1)
-        COOKIES[k] = v
-
+# test
+# for part in os.environ.get("KWORK_COOKIES", "").split(";"):
+#     if "=" in part:
+#         k, v = part.strip().split("=", 1)
+#         COOKIES[k] = v
+# test
 
 def load_seen():
     try:
