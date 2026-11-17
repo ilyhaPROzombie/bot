@@ -124,12 +124,13 @@ def run_once():
 
     # при самом первом запуске не спамим старыми проектами
     if not first_run:
+        print(f"Пытаюсь отправить в Telegram проектов: {len(new)}")
         for w in reversed(new):   # от старых к новым
+            print(f"Отправляю заказ ID: {w.get('id')} - {w.get('name')}")
             send(fmt(w))
             time.sleep(1)
-
-    save_seen(seen)
-    print(f"Новых подходящих: {len(new)}")
+    else:
+        print("Первый запуск: пропускаем отправку.")
 
 
 if __name__ == "__main__":
