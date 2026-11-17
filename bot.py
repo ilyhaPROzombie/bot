@@ -55,6 +55,17 @@ def fetch(url):
     return extract_state(r.text)
 
 
+from datetime import datetime
+import html
+import re
+
+def format_time(timestamp):
+    try:
+        dt = datetime.fromtimestamp(int(timestamp))
+        return dt.strftime("%d.%m.%Y в %H:%M")
+    except Exception:
+        return "Только что"
+
 def fmt(w: dict) -> str:
     u = w.get("user") or {}
     ud = u.get("data") or {}
@@ -63,11 +74,18 @@ def fmt(w: dict) -> str:
     price = w.get("priceLimit") or w.get("price_limit")
     price_max = w.get("possiblePriceLimit")
     desc = re.sub(r"\s+", " ", w.get("description") or "")[:600]
+    
+    # Обработка времени публикации (проверяем разные возможные ключи таймстампы или даты)
+    raw_date = w.get("date") or w.get("date_publish") or w.get("created_at")
+    pub_date = format_time(raw_date) if raw_date else "Не указано"
 
     return (
-        f"🆕 <b>{esc(w.get('name'))}</b>\n\n"
+        f"🆕 <b>{esc(w.get('name'))}</b> 🆕\n\n"
+        f"🕒 <b>Опубликовано:</b> {esc(pub_date)}\n"
         f"💰 Бюджет: {esc(price)} ₽ (допустимо до {esc(price_max)} ₽)\n"
+        f"----------"
         f"📝 {esc(desc)}\n"
+        f"----------"
         f"💬 Предложений: {esc(w.get('kwork_count'))}\n"
         f"⏳ Осталось: {esc(w.get('timeLeft') or w.get('date_expire'))}\n\n"
         f"👤 <b>Покупатель:</b> {esc(u.get('username'))}\n"
