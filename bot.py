@@ -94,13 +94,13 @@ KEYWORDS = ("верстка", "сайт", "html", "css", "js", "php","хости
             "wordpress", "доработка", "юзабилити", "сервер")
 
 
-# def allowed(w: dict) -> bool:
-#     text = ((w.get("name") or "") + " " + (w.get("description") or "")).lower()
-#     return any(k in text for k in KEYWORDS)
+def allowed(w: dict) -> bool:
+    text = ((w.get("name") or "") + " " + (w.get("description") or "")).lower()
+    return any(k in text for k in KEYWORDS)
 
     # ..
-def allowed(w):
-    return True
+# def allowed(w):
+#     return True
     # ,,
 
 
