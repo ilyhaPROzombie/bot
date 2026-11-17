@@ -94,14 +94,32 @@ KEYWORDS = ("верстка", "сайт", "html", "css", "js", "php","хости
             "wordpress", "доработка", "юзабилити", "сервер")
 
 
-def allowed(w: dict) -> bool:
-    text = ((w.get("name") or "") + " " + (w.get("description") or "")).lower()
-    return any(k in text for k in KEYWORDS)
+def allowed(w):
+    title = (w.get("name") or "").lower()
+    description = (w.get("description") or "").lower()
+    full_text = f"{title} {description}"
 
-    # ..
-# def allowed(w):
-#     return True
-    # ,,
+    # Ваши ключевые слова (соответствуют вашим рубрикам: верстка, правки, WP, создание сайтов и т.д.)
+    target_keywords = [
+        # Верстка и фронтенд
+        "верстк", "html", "css", "scss","php", "js", "javascript", "java", "flexbox", "grid", "макет", "figma", "фигм",
+        # Правки и доработка
+        "доработк", "правк", "ошибк", "баг", "исправ", "плагин", "тему", "темы", 
+        "скорост", "оптимизац", "ускорен", "админку", "админ",
+        # WordPress и конструкторы
+        "wordpress", "вордпресс","wordpres","вордпрес", "wp", "acf", "elementor", "элементор",
+        # Создание сайтов
+        "сайт", "лендинг", "landing", "интернет-магазин", "магазин", "портфолио", "визитк", 
+        "копи", "перенос",
+        # Сервера и хостинг
+        "хостинг", "хост", "домен", "сервер", "vps", "vds", "ssl"
+    ]
+    
+    # Проверяем, есть ли хоть одно ключевое слово в тексте проекта
+    has_keyword = any(kw in full_text for kw in target_keywords)
+    
+    # Если ключевое слово найдено — пропускаем (True), если нет — отклоняем (False)
+    return has_keyword
 
 
 def run_once():
