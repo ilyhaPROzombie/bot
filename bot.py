@@ -85,7 +85,8 @@ def send(text):
         timeout=30,
     )
     if not r.ok:
-        print("Telegram error:", r.text)
+        # Выведем ошибку и сразу остановим скрипт, чтобы увидеть её в логах GitHub
+        raise RuntimeError(f"Telegram error: {r.text}")
 
 
 # Фильтр по ключевым словам (потом можно заменить на фильтр по рубрикам)
