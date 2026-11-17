@@ -25,10 +25,12 @@ jobs:
           CHAT_ID: ${{ secrets.CHAT_ID }}
       - name: Save seen
         run: |
-          git config user.name "bot"
-          git config user.email "bot@users.noreply.github.com"
+          git config --global user.name "bot"
+          git config --global user.email "bot@users.noreply.github.com"
           git status
-          git add seen.json
-          git commit -m "Update seen.json automatically" || echo "No changes to commit"
-          git pull --rebase origin main || git pull --rebase origin master || true
+          git add -f seen.json
+          # Создаем коммит, даже если Git сомневается, и разрешаем пустой коммит принудительно
+          git commit -m "Update seen.json" || echo "No changes to commit"
+          # Синхронизируемся с репозиторием и пушим
+          git pull --rebase || true
           git push
