@@ -106,23 +106,23 @@ def allowed(w):
 
 def run_once():
     seen = load_seen()
-    # test
-    first_run = False
-    # first_run = not seen
+    first_run = not seen
     new = []
 
     for url in URLS:
         for w in find_wants(fetch(url)):
             wid = str(w.get("id"))
             if wid in seen:
-                continue          
+                continue          # уже видели, пропускаем
             
+            # Проверяем по фильтру
             if allowed(w):
-                new.append(w)     # Сначала проверяем фильтр
-                seen.add(wid)     # И только потом запоминаем, что увидели
+                new.append(w)     # Добавляем в список для отправки
+            
+            seen.add(wid)         # ЗАПОМНИМ В ЛЮБОМ СЛУЧАЕ, чтобы больше никогда не трогать этот ID
         time.sleep(3)
 
-    # при самом первом запуске не спамим старыми проектами
+    # Отправка уведомлений
     if not first_run:
         print(f"Пытаюсь отправить в Telegram проектов: {len(new)}")
         for w in reversed(new):   # от старых к новым
@@ -130,7 +130,11 @@ def run_once():
             send(fmt(w))
             time.sleep(1)
     else:
-        print("Первый запуск: пропускаем отправку.")
+        print("Первый запуск: пропускаем отправку, но сохраняем текущую базу.")
+
+    # Сохраняем обновленный список просмотренных ID обратно в файл
+    save_seen(seen)
+    print(f"Всего обработано / сохранено ID в базе: {len(seen)}")
 
 
 if __name__ == "__main__":
