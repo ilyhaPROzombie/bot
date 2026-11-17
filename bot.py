@@ -105,17 +105,20 @@ def allowed(w):
 
 def run_once():
     seen = load_seen()
-    first_run = not seen
+    # test
+    first_run = False
+    # first_run = not seen
     new = []
 
     for url in URLS:
         for w in find_wants(fetch(url)):
             wid = str(w.get("id"))
             if wid in seen:
-                continue          # уже видели, пропускаем
-            seen.add(wid)         # запоминаем в любом случае, даже если не подошёл
+                continue          
+            
             if allowed(w):
-                new.append(w)     # подходит под фильтр, отправим
+                new.append(w)     # Сначала проверяем фильтр
+                seen.add(wid)     # И только потом запоминаем, что увидели
         time.sleep(3)
 
     # при самом первом запуске не спамим старыми проектами
