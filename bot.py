@@ -75,19 +75,24 @@ def fmt(w: dict) -> str:
     price_max = w.get("possiblePriceLimit")
     desc = re.sub(r"\s+", " ", w.get("description") or "")[:600]
     
-    # Обработка времени публикации (проверяем разные возможные ключи таймстампы или даты)
-    raw_date = w.get("date") or w.get("date_publish") or w.get("created_at")
+    # Универсальный поиск времени
+    time_keys = [k for k in w.keys() if any(sub in k.lower() for sub in ['date', 'time', 'created', 'publish', 'at'])]
+    raw_date = None
+    for k in time_keys:
+        if w.get(k):
+            raw_date = w.get(k)
+            break
     pub_date = format_time(raw_date) if raw_date else "Не указано"
 
     return (
-        f"🆕 <b>{esc(w.get('name'))}</b> 🆕\n\n"
+        f"🆕 <b>{esc(w.get('name'))}</b>\n\n"
         f"🕒 <b>Опубликовано:</b> {esc(pub_date)}\n"
         f"💰 Бюджет: {esc(price)} ₽ (допустимо до {esc(price_max)} ₽)\n"
-        f"------------------------------------\n"
+        f"-------------------\n"
         f"📝 {esc(desc)}\n"
-        f"------------------------------------\n"
+        f"-------------------\n"
         f"💬 Предложений: {esc(w.get('kwork_count'))}\n"
-        f"⏳ Осталось: {esc(w.get('timeLeft') or w.get('date_expire'))}\n\n"
+        f"⏳ Осталось: {esc(w.get('timeLeft') or w.get('date_expire'))}\n"
         f"👤 <b>Покупатель:</b> {esc(u.get('username'))}\n"
         f"📊 Размещено проектов: {esc(ud.get('wants_count'))}\n"
         f"✅ Процент найма: {esc(ud.get('wants_hired_percent'))}%\n"
