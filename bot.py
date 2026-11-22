@@ -115,6 +115,13 @@ def analyze_project(w: dict) -> str:
     }
 
     for model in GEMINI_MODELS:
+        attempts = [
+        ("gemini-flash-lite-latest", 15),
+        ("gemini-flash-lite-latest", 15),
+        ("gemini-flash-latest", 25),
+    ]
+
+    for i, (model, req_timeout) in enumerate(attempts, 1):
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
         try:
             r = requests.post(
@@ -124,22 +131,23 @@ def analyze_project(w: dict) -> str:
                     "Content-Type": "application/json",
                 },
                 json=payload,
-                timeout=20,
+                timeout=req_timeout,
             )
 
             if r.ok:
                 data = r.json()
                 return data["candidates"][0]["content"]["parts"][0]["text"].strip()
 
-            print(f"Модель {model} вернула {r.status_code}, пробую следующую...")
+            print(f"Попытка {i} ({model}) вернула {r.status_code}...")
             if r.status_code in (429, 500, 503):
-                time.sleep(1)
+                time.sleep(3)
                 continue
 
             print(f"Ответ Gemini ({model}): {r.text}")
             return ""
         except requests.exceptions.Timeout:
-            print(f"Таймаут модели {model}, пробую следующую...")
+            print(f"Попытка {i} ({model}): таймаут...")
+            time.sleep(2)
             continue
         except Exception as e:
             print(f"Ошибка Gemini API ({model}): {e}")
