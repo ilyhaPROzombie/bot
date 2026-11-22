@@ -1,19 +1,19 @@
-name: kwork-bot
+name: Kwork Bot
+
 on:
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: kwork-bot
-  cancel-in-progress: false
+  group: kwork-bot-run
+  cancel-in-progress: true
 
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
