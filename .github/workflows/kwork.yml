@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: kwork-bot-run
@@ -23,14 +24,14 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-      - name: Save seen
+      - name: Clean up old workflow runs
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --global user.name "bot"
-          git config --global user.email "bot@users.noreply.github.com"
-          git status
-          git add -f seen.json
-          # Создаем коммит, даже если Git сомневается, и разрешаем пустой коммит принудительно
-          git commit -m "Update seen.json" || echo "No changes to commit"
-          # Синхронизируемся с репозиторием и пушим
-          git pull --rebase || true
-          git push
+          gh run list --repo "${{ github.repository }}" --workflow=kwork.yml --limit 100 --json databaseId,status \
+            --jq '.[] | select(.status == "completed") | .databaseId' \
+            | tail -n +6 \
+            | while read -r id; do
+                gh api -X DELETE "repos/${{ github.repository }}/actions/runs/$id" || true
+              done
