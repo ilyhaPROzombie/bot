@@ -144,7 +144,7 @@ def analyze_project(w: dict) -> str:
 
         data = r.json()
         return data["candidates"][0]["content"]["parts"][0]["text"].strip()
-        except Exception as e:
+    except Exception as e:
         print(f"Ошибка Gemini API: {e}")
         return ""
 
