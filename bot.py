@@ -110,7 +110,7 @@ def analyze_project(w: dict) -> str:
         "contents": [{"parts": [{"text": user_content}]}],
         "generationConfig": {
             "temperature": 0.3,
-            "maxOutputTokens": 1000,
+            "maxOutputTokens": 2048,
         },
     }
 
@@ -136,7 +136,15 @@ def analyze_project(w: dict) -> str:
 
             if r.ok:
                 data = r.json()
-                return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                cand = data["candidates"][0]
+                finish_reason = cand.get("finishReason")
+                if finish_reason and finish_reason != "STOP":
+                    print(f"Gemini ({model}) завершил с причиной: {finish_reason}")
+                parts = cand.get("content", {}).get("parts", [])
+                text = "".join(
+                    p.get("text", "") for p in parts if not p.get("thought")
+                ).strip()
+                return text
 
             print(f"Попытка {i} ({model}) вернула {r.status_code}...")
             if r.status_code in (429, 500, 503):
