@@ -5,8 +5,8 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODELS = [
-    "gemini-flash-latest",
     "gemini-flash-lite-latest",
+    "gemini-flash-latest",
 ]
 
 SYSTEM_PROMPT = """Ты ассистент фрилансера-веб-разработчика (стек: HTML, CSS, JS, PHP, WordPress, ACF, Elementor, WooCommerce; услуги: верстка по Figma, доработки, сайты под ключ).
@@ -110,8 +110,7 @@ def analyze_project(w: dict) -> str:
         "contents": [{"parts": [{"text": user_content}]}],
         "generationConfig": {
             "temperature": 0.3,
-            "maxOutputTokens": 400,
-            "thinkingConfig": {"thinkingBudget": 0},
+            "maxOutputTokens": 1000,
         },
     }
 
