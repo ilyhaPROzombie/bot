@@ -4,11 +4,6 @@ import requests
 BOT_TOKEN = "9071887061:AAF_eh-XTOzYSgVfzH4-Y2QeJUx-36qySV4"
 CHAT_ID = "781413995"
 
-# Вставьте сюда URL(ы) со страницы проектов с вашими фильтрами
-URLS = [
-    "https://kwork.ru/projects?a=1",
-]
-
 SEEN_FILE = "seen.json"
 INTERVAL = 240  # секунд, только для локального режима (--loop)
 HEADERS = {
@@ -17,12 +12,7 @@ HEADERS = {
     "Accept-Language": "ru-RU,ru;q=0.9",
 }
 COOKIES = {}
-# test
-# for part in os.environ.get("KWORK_COOKIES", "").split(";"):
-#     if "=" in part:
-#         k, v = part.strip().split("=", 1)
-#         COOKIES[k] = v
-# test
+
 
 def load_seen():
     try:
@@ -55,16 +45,35 @@ def fetch(url):
     return extract_state(r.text)
 
 
-from datetime import datetime
-import html
-import re
+from datetime import datetime, timezone, timedelta
 
-def format_time(timestamp):
-    try:
-        dt = datetime.fromtimestamp(int(timestamp))
-        return dt.strftime("%d.%m.%Y в %H:%M")
-    except Exception:
-        return "Только что"
+MSK = timezone(timedelta(hours=3))
+
+def format_time(val) -> str:
+    if not val:
+        return "Не указано"
+    s = str(val).strip()
+
+    # Если пришёл Unix timestamp (например, 1763800000)
+    if s.isdigit():
+        dt = datetime.fromtimestamp(int(s), tz=MSK)
+        return dt.strftime("%d.%m.%Y в %H:%M МСК")
+
+    # Если пришла строка вида "2026-11-22 14:35:10" (Kwork отдаёт её уже по МСК)
+    for pattern in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            dt = datetime.strptime(s[:19], pattern)
+            return dt.strftime("%d.%m.%Y в %H:%M МСК")
+        except ValueError:
+            continue
+
+    return s
+
+def get_pub_date(w: dict) -> str:
+    for key in ("date_confirm", "date_create", "date_active", "created_at", "date_publish"):
+        if w.get(key):
+            return format_time(w[key])
+    return "Не указано"
 
 def fmt(w: dict) -> str:
     u = w.get("user") or {}
@@ -75,14 +84,8 @@ def fmt(w: dict) -> str:
     price_max = w.get("possiblePriceLimit")
     desc = re.sub(r"\s+", " ", w.get("description") or "")[:600]
     
-    # Универсальный поиск времени
-    time_keys = [k for k in w.keys() if any(sub in k.lower() for sub in ['date', 'time', 'created', 'publish', 'at'])]
-    raw_date = None
-    for k in time_keys:
-        if w.get(k):
-            raw_date = w.get(k)
-            break
-    pub_date = format_time(raw_date) if raw_date else "Не указано"
+    # поиск времени
+    pub_date = get_pub_date(w)
 
     return (
         f"🆕 <b>{esc(w.get('name'))}</b>\n\n"
@@ -140,9 +143,21 @@ def run_once():
     seen = load_seen()
     first_run = not seen
     new = []
+    debug_printed = False
 
     for url in URLS:
-        for w in find_wants(fetch(url)):
+        projects = find_wants(fetch(url))
+
+        # Временный вывод ключей даты первого проекта (сработает 1 раз за запуск)
+        if projects and not debug_printed:
+            print("DATE KEYS:", {
+                k: v for k, v in projects[0].items()
+                if any(x in k.lower() for x in ("date", "time", "create", "confirm"))
+            })
+            debug_printed = True
+        ##########
+
+        for w in projects:
             wid = str(w.get("id"))
             if wid in seen:
                 continue          # Уже видели этот ID в прошлые разы, пропускаем
