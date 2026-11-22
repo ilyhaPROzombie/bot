@@ -1,8 +1,17 @@
 import json, os, re, sys, time, html
 import requests
 
-BOT_TOKEN = "9071887061:AAF_eh-XTOzYSgVfzH4-Y2QeJUx-36qySV4"
-CHAT_ID = "781413995"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = "gemini-2.5-flash"
+
+SYSTEM_PROMPT = """Ты ассистент фрилансера-веб-разработчика (стек: HTML, CSS, JS, PHP, WordPress, ACF, Elementor, WooCommerce; услуги: верстка по Figma, доработки, сайты под ключ).
+Кратко оцени заказ с Kwork строго в 4 строки, БЕЗ Markdown (без **, *, #), максимум 450 символов:
+💰 Цена: адекватна / занижена / хорошая (коротко почему с учётом объёма)
+📋 ТЗ и сроки: понятность задачи, скрытые риски, срочность (если есть сроки)
+👤 Заказчик: новичок или опытный, оценка процента найма
+🎯 Вердикт: стоит брать / сомнительно / лучше пропустить"""
 
 SEEN_FILE = "seen.json"
 INTERVAL = 240  # секунд, только для локального режима (--loop)
@@ -75,6 +84,51 @@ def get_pub_date(w: dict) -> str:
             return format_time(w[key])
     return "Не указано"
 
+def analyze_project(w: dict) -> str:
+    if not GEMINI_API_KEY:
+        return ""
+
+    u = w.get("user") or {}
+    ud = u.get("data") or {}
+
+    user_content = (
+        f"Название: {w.get('name')}\n"
+        f"Бюджет: {w.get('priceLimit') or w.get('price_limit')} ₽ "
+        f"(допустимо до {w.get('possiblePriceLimit')} ₽)\n"
+        f"Осталось на приём откликов: {w.get('timeLeft') or w.get('date_expire')}\n"
+        f"Откликов: {w.get('kwork_count')}\n"
+        f"Заказчик: размещено проектов {ud.get('wants_count')}, "
+        f"процент найма {ud.get('wants_hired_percent')}%\n"
+        f"Полное описание:\n{w.get('description') or 'Нет описания'}"
+    )
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+
+    try:
+        r = requests.post(
+            url,
+            headers={
+                "x-goog-api-key": GEMINI_API_KEY,
+                "Content-Type": "application/json",
+            },
+            json={
+                "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+                "contents": [{"parts": [{"text": user_content}]}],
+                "generationConfig": {
+                    "temperature": 0.3,
+                    "maxOutputTokens": 400,
+                    "thinkingConfig": {"thinkingBudget": 0},
+                },
+            },
+            timeout=15,
+        )
+        r.raise_for_status()
+        data = r.json()
+        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except Exception as e:
+        print(f"Ошибка Gemini API: {e}")
+        return ""
+
 def fmt(w: dict) -> str:
     u = w.get("user") or {}
     ud = u.get("data") or {}
@@ -86,6 +140,12 @@ def fmt(w: dict) -> str:
     
     # поиск времени
     pub_date = get_pub_date(w)
+
+    ai_text = analyze_project(w)
+    ai_block = (
+        f"\n\n<blockquote expandable>🤖 <b>Анализ заказа:</b>\n{esc(ai_text)}</blockquote>"
+        if ai_text else ""
+    )
 
     return (
         f"🆕 <b>{esc(w.get('name'))}</b>\n\n"
@@ -99,7 +159,8 @@ def fmt(w: dict) -> str:
         f"👤 <b>Покупатель:</b> {esc(u.get('username'))}\n"
         f"📊 Размещено проектов: {esc(ud.get('wants_count'))}\n"
         f"✅ Процент найма: {esc(ud.get('wants_hired_percent'))}%\n"
-        f"🔗 https://kwork.ru/projects/{w.get('id')}"
+        f"-------------------\n"
+        f"📎 https://kwork.ru/projects/{w.get('id')}{ai_block}"
     )
 
 
