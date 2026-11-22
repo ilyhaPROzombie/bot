@@ -112,37 +112,28 @@ def send(text):
         raise RuntimeError(f"Telegram error: {r.text}")
 
 
-# Фильтр по ключевым словам (потом можно заменить на фильтр по рубрикам)
-KEYWORDS = ("верстка", "сайт", "html", "css", "js", "php","хостинг", "домен",
-            "wordpress", "доработка", "юзабилити", "сервер")
+import time
 
+FILTER_URLS = [
+    "https://kwork.ru/projects?fc=37",
+    "https://kwork.ru/projects?fc=38",
+    "https://kwork.ru/projects?fc=79",
+    "https://kwork.ru/projects?fc=81",
+    "https://kwork.ru/projects?fc=255",
+    # сюда добавьте остальные нужные ссылки с сайта (например, доработка, сайт под ключ)
+]
 
-def allowed(w):
-    title = (w.get("name") or "").lower()
-    description = (w.get("description") or "").lower()
-    full_text = f"{title} {description}"
+def load_all_projects() -> list[dict]:
+    unique = {}  # убирает дубли, если заказ попал сразу в две подрубрики
 
-    # Ваши ключевые слова (соответствуют вашим рубрикам: верстка, правки, WP, создание сайтов и т.д.)
-    target_keywords = [
-        # Верстка и фронтенд
-        "верстк", "html", "css", "scss","php", "js", "javascript", "java", "flexbox", "grid", "макет", "figma", "фигм",
-        # Правки и доработка
-        "доработк", "правк", "ошибк", "баг", "исправ", "плагин", "тему", "темы", 
-        "скорост", "оптимизац", "ускорен", "админку", "админ",
-        # WordPress и конструкторы
-        "wordpress", "вордпресс","wordpres","вордпрес", "wp", "acf", "elementor", "элементор",
-        # Создание сайтов
-        "сайт", "лендинг", "landing", "интернет-магазин", "магазин", "портфолио", "визитк", 
-        "копи", "перенос",
-        # Сервера и хостинг
-        "хостинг", "хост", "домен", "сервер", "vps", "vds", "ssl"
-    ]
-    
-    # Проверяем, есть ли хоть одно ключевое слово в тексте проекта
-    has_keyword = any(kw in full_text for kw in target_keywords)
-    
-    # Если ключевое слово найдено — пропускаем (True), если нет — отклоняем (False)
-    return has_keyword
+    for url in FILTER_URLS:
+        for w in fetch_projects(url):  # ваша текущая функция запроса к Kwork
+            pid = str(w.get("id") or "")
+            if pid:
+                unique[pid] = w
+        time.sleep(1)  # пауза, чтобы Kwork не резал частые запросы
+
+    return list(unique.values())
 
 
 def run_once():
