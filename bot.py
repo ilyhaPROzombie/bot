@@ -4,7 +4,10 @@ import requests
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = "gemini-flash-latest"
+GEMINI_MODELS = [
+    "gemini-flash-latest",
+    "gemini-flash-lite-latest",
+]
 
 SYSTEM_PROMPT = """Ты ассистент фрилансера-веб-разработчика (стек: HTML, CSS, JS, PHP, WordPress, ACF, Elementor, WooCommerce; услуги: верстка по Figma, доработки, сайты под ключ).
 Кратко оцени заказ с Kwork строго в 4 строки, БЕЗ Markdown (без **, *, #), максимум 450 символов:
@@ -102,51 +105,48 @@ def analyze_project(w: dict) -> str:
         f"Полное описание:\n{w.get('description') or 'Нет описания'}"
     )
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+    payload = {
+        "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+        "contents": [{"parts": [{"text": user_content}]}],
+        "generationConfig": {
+            "temperature": 0.3,
+            "maxOutputTokens": 400,
+            "thinkingConfig": {"thinkingBudget": 0},
+        },
+    }
 
-    try:
-        r = requests.post(
-            url,
-            headers={
-                "x-goog-api-key": GEMINI_API_KEY,
-                "Content-Type": "application/json",
-            },
-            json={
-                "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
-                "contents": [{"parts": [{"text": user_content}]}],
-                "generationConfig": {
-                    "temperature": 0.3,
-                    "maxOutputTokens": 400,
-                    "thinkingConfig": {"thinkingBudget": 0},
+    for model in GEMINI_MODELS:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        try:
+            r = requests.post(
+                url,
+                headers={
+                    "x-goog-api-key": GEMINI_API_KEY,
+                    "Content-Type": "application/json",
                 },
-            },
-            timeout=15,
-        )
-        if r.status_code == 404:
-            print("Ответ Gemini 404:", r.text)
-            mr = requests.get(
-                "https://generativelanguage.googleapis.com/v1beta/models",
-                headers={"x-goog-api-key": GEMINI_API_KEY},
-                timeout=15,
+                json=payload,
+                timeout=20,
             )
-            if mr.ok:
-                names = [
-                    m["name"].replace("models/", "")
-                    for m in mr.json().get("models", [])
-                    if "generateContent" in m.get("supportedGenerationMethods", [])
-                ]
-                print("Доступные модели:", names)
+
+            if r.ok:
+                data = r.json()
+                return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+            print(f"Модель {model} вернула {r.status_code}, пробую следующую...")
+            if r.status_code in (429, 500, 503):
+                time.sleep(1)
+                continue
+
+            print(f"Ответ Gemini ({model}): {r.text}")
+            return ""
+        except requests.exceptions.Timeout:
+            print(f"Таймаут модели {model}, пробую следующую...")
+            continue
+        except Exception as e:
+            print(f"Ошибка Gemini API ({model}): {e}")
             return ""
 
-        if not r.ok:
-            print(f"Ошибка Gemini API ({r.status_code}): {r.text}")
-            return ""
-
-        data = r.json()
-        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
-    except Exception as e:
-        print(f"Ошибка Gemini API: {e}")
-        return ""
+    return ""
 
 def fmt(w: dict) -> str:
     u = w.get("user") or {}
