@@ -145,7 +145,7 @@ def run_once():
     new = []
     debug_printed = False
 
-    for url in URLS:
+    for url in FILTER_URLS:
         projects = find_wants(fetch(url))
 
         # Временный вывод ключей даты первого проекта (сработает 1 раз за запуск)
@@ -155,20 +155,18 @@ def run_once():
                 if any(x in k.lower() for x in ("date", "time", "create", "confirm"))
             })
             debug_printed = True
-        ##########
 
         for w in projects:
             wid = str(w.get("id"))
             if wid in seen:
-                continue          # Уже видели этот ID в прошлые разы, пропускаем
-            
-            # 1. ЗАПОМНИМ В ЛЮБОМ СЛУЧАЕ (даже если проект не подошел по фильтру)
-            seen.add(wid)         
-            
-            # 2. Проверяем, подходит ли он под ваши критерии для отправки
-            if allowed(w):
-                new.append(w)     
-        time.sleep(3)
+                continue          # Уже видели этот ID в прошлые разы (или в другой рубрике), пропускаем
+
+            # 1. ЗАПОМНИМ В ЛЮБОМ СЛУЧАЕ
+            seen.add(wid)
+
+            # 2. Добавляем в очередь на отправку (фильтрация уже сделана через FILTER_URLS)
+            new.append(w)
+        time.sleep(2)
 
     # Отправка в Telegram (если это не самый первый пустой запуск)
     if not first_run:
