@@ -70,7 +70,7 @@ def format_time(val) -> str:
     return s
 
 def get_pub_date(w: dict) -> str:
-    for key in ("date_confirm", "date_create", "date_active", "created_at", "date_publish"):
+    for key in ("date_active", "date_create"):
         if w.get(key):
             return format_time(w[key])
     return "Не указано"
@@ -143,18 +143,9 @@ def run_once():
     seen = load_seen()
     first_run = not seen
     new = []
-    debug_printed = False
 
     for url in FILTER_URLS:
         projects = find_wants(fetch(url))
-
-        # Временный вывод ключей даты первого проекта (сработает 1 раз за запуск)
-        if projects and not debug_printed:
-            print("DATE KEYS:", {
-                k: v for k, v in projects[0].items()
-                if any(x in k.lower() for x in ("date", "time", "create", "confirm"))
-            })
-            debug_printed = True
 
         for w in projects:
             wid = str(w.get("id"))
