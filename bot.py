@@ -4,7 +4,7 @@ import requests
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-flash-latest"
 
 SYSTEM_PROMPT = """Ты ассистент фрилансера-веб-разработчика (стек: HTML, CSS, JS, PHP, WordPress, ACF, Elementor, WooCommerce; услуги: верстка по Figma, доработки, сайты под ключ).
 Кратко оцени заказ с Kwork строго в 4 строки, БЕЗ Markdown (без **, *, #), максимум 450 символов:
@@ -122,12 +122,28 @@ def analyze_project(w: dict) -> str:
             },
             timeout=15,
         )
-        r.raise_for_status()
+        if r.status_code == 404:
+            print("Ответ Gemini 404:", r.text)
+            mr = requests.get(
+                "https://generativelanguage.googleapis.com/v1beta/models",
+                headers={"x-goog-api-key": GEMINI_API_KEY},
+                timeout=15,
+            )
+            if mr.ok:
+                names = [
+                    m["name"].replace("models/", "")
+                    for m in mr.json().get("models", [])
+                    if "generateContent" in m.get("supportedGenerationMethods", [])
+                ]
+                print("Доступные модели:", names)
+            return ""
+
+        if not r.ok:
+            print(f"Ошибка Gemini API ({r.status_code}): {r.text}")
+            return ""
+
         data = r.json()
         return data["candidates"][0]["content"]["parts"][0]["text"].strip()
-    except Exception as e:
-        print(f"Ошибка Gemini API: {e}")
-        return ""
 
 def fmt(w: dict) -> str:
     u = w.get("user") or {}
@@ -149,12 +165,12 @@ def fmt(w: dict) -> str:
 
     return (
         f"🆕 <b>{esc(w.get('name'))}</b>\n\n"
-        f"🕒 <b>Опубликовано:</b> {esc(pub_date)}\n"
         f"💰 Бюджет: {esc(price)} ₽ (допустимо до {esc(price_max)} ₽)\n"
         f"-------------------\n"
         f"📝 {esc(desc)}\n"
         f"-------------------\n"
         f"💬 Предложений: {esc(w.get('kwork_count'))}\n"
+        f"🕒 <b>Опубликовано:</b> {esc(pub_date)}\n"
         f"⏳ Осталось: {esc(w.get('timeLeft') or w.get('date_expire'))}\n"
         f"👤 <b>Покупатель:</b> {esc(u.get('username'))}\n"
         f"📊 Размещено проектов: {esc(ud.get('wants_count'))}\n"
