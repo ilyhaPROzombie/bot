@@ -200,7 +200,7 @@ def fmt(w: dict) -> str:
 
     ai_text = analyze_project(w)
     ai_block = (
-        f"\n\n<blockquote expandable>🤖 <b>Анализ заказа:</b>\n{esc(ai_text)}</blockquote>"
+        f"\n\n<blockquote expandable><b>Анализ заказа:</b>\n{esc(ai_text)}</blockquote>"
         if ai_text else ""
     )
 
@@ -217,20 +217,50 @@ def fmt(w: dict) -> str:
         f"📊 Размещено проектов: {esc(ud.get('wants_count'))}\n"
         f"✅ Процент найма: {esc(ud.get('wants_hired_percent'))}%\n"
         f"-------------------\n"
-        f"📎 https://kwork.ru/projects/{w.get('id')}{ai_block}"
+        f"{ai_block}"
     )
 
+def send_tg(text: str, project_url: str = None):
+    payload = {
+        "chat_id": CHAT_ID,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True,
+    }
+    if project_url:
+        payload["reply_markup"] = {
+            "inline_keyboard": [
+                [{"text": "🔗 Открыть проект на Kwork", "url": project_url}]
+            ]
+        }
 
-def send(text):
     r = requests.post(
         f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-        json={"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML",
-              "disable_web_page_preview": True},
-        timeout=30,
+        json=payload,
+        timeout=15,
     )
-    if not r.ok:
-        # Выведем ошибку и сразу остановим скрипт, чтобы увидеть её в логах GitHub
-        raise RuntimeError(f"Telegram error: {r.text}")
+    r.raise_for_status()
+
+def send(text: str, project_url: str = None):
+    payload = {
+        "chat_id": CHAT_ID,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True,
+    }
+    if project_url:
+        payload["reply_markup"] = {
+            "inline_keyboard": [
+                [{"text": "🔗 Открыть проект на Kwork", "url": project_url}]
+            ]
+        }
+
+    r = requests.post(
+        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+        json=payload,
+        timeout=15,
+    )
+    r.raise_for_status()
 
 
 import time
@@ -282,7 +312,8 @@ def run_once():
         print(f"Пытаюсь отправить в Telegram проектов: {len(new)}")
         for w in reversed(new):   # От старых к новым
             print(f"Отправляю заказ ID: {w.get('id')}")
-            send(fmt(w))
+            project_url = f"https://kwork.ru/projects/{w.get('id')}"
+            send(fmt(w), project_url)
             time.sleep(1)
     else:
         print("Первый запуск: база инициализирована, спам пропущен.")
