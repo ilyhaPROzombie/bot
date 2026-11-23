@@ -216,7 +216,7 @@ def fmt(w: dict) -> str:
         f"👤 <b>Покупатель:</b> {esc(u.get('username'))}\n"
         f"📊 Размещено проектов: {esc(ud.get('wants_count'))}\n"
         f"✅ Процент найма: {esc(ud.get('wants_hired_percent'))}%\n"
-        f"-------------------\n"
+        f"-------------------"
         f"{ai_block}"
     )
 
