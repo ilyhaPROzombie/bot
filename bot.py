@@ -4,6 +4,7 @@ import requests
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GEMINI_MODELS = [
     "gemini-flash-lite-latest",
     "gemini-flash-latest",
@@ -87,10 +88,36 @@ def get_pub_date(w: dict) -> str:
             return format_time(w[key])
     return "Не указано"
 
-def analyze_project(w: dict) -> str:
-    if not GEMINI_API_KEY:
+def analyze_with_groq(user_content: str) -> str:
+    if not GROQ_API_KEY:
         return ""
+    try:
+        r = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content},
+                ],
+                "temperature": 0.3,
+                "max_tokens": 600,
+            },
+            timeout=15,
+        )
+        if r.ok:
+            return r.json()["choices"][0]["message"]["content"].strip()
+        print(f"Ошибка Groq API ({r.status_code}): {r.text}")
+    except Exception as e:
+        print(f"Ошибка Groq API: {e}")
+    return ""
 
+
+def analyze_project(w: dict) -> str:
     u = w.get("user") or {}
     ud = u.get("data") or {}
 
@@ -105,61 +132,57 @@ def analyze_project(w: dict) -> str:
         f"Полное описание:\n{w.get('description') or 'Нет описания'}"
     )
 
-    payload = {
-        "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
-        "contents": [{"parts": [{"text": user_content}]}],
-        "generationConfig": {
-            "temperature": 0.3,
-            "maxOutputTokens": 2048,
-        },
-    }
+    if GEMINI_API_KEY:
+        payload = {
+            "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+            "contents": [{"parts": [{"text": user_content}]}],
+            "generationConfig": {
+                "temperature": 0.3,
+                "maxOutputTokens": 2048,
+            },
+        }
 
-    for model in GEMINI_MODELS:
         attempts = [
-        ("gemini-flash-lite-latest", 15),
-        ("gemini-flash-lite-latest", 15),
-        ("gemini-flash-latest", 25),
-    ]
+            ("gemini-flash-lite-latest", 12),
+            ("gemini-flash-latest", 15),
+        ]
 
-    for i, (model, req_timeout) in enumerate(attempts, 1):
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-        try:
-            r = requests.post(
-                url,
-                headers={
-                    "x-goog-api-key": GEMINI_API_KEY,
-                    "Content-Type": "application/json",
-                },
-                json=payload,
-                timeout=req_timeout,
-            )
+        for i, (model, req_timeout) in enumerate(attempts, 1):
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+            try:
+                r = requests.post(
+                    url,
+                    headers={
+                        "x-goog-api-key": GEMINI_API_KEY,
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                    timeout=req_timeout,
+                )
+                if r.ok:
+                    cand = r.json()["candidates"][0]
+                    parts = cand.get("content", {}).get("parts", [])
+                    text = "".join(
+                        p.get("text", "") for p in parts if not p.get("thought")
+                    ).strip()
+                    if text:
+                        return text
 
-            if r.ok:
-                data = r.json()
-                cand = data["candidates"][0]
-                finish_reason = cand.get("finishReason")
-                if finish_reason and finish_reason != "STOP":
-                    print(f"Gemini ({model}) завершил с причиной: {finish_reason}")
-                parts = cand.get("content", {}).get("parts", [])
-                text = "".join(
-                    p.get("text", "") for p in parts if not p.get("thought")
-                ).strip()
-                return text
-
-            print(f"Попытка {i} ({model}) вернула {r.status_code}...")
-            if r.status_code in (429, 500, 503):
-                time.sleep(3)
+                print(f"Попытка {i} ({model}) вернула {r.status_code}...")
+                if r.status_code in (429, 500, 503):
+                    time.sleep(2)
+                    continue
+                break
+            except requests.exceptions.Timeout:
+                print(f"Попытка {i} ({model}): таймаут...")
                 continue
+            except Exception as e:
+                print(f"Ошибка Gemini API ({model}): {e}")
+                break
 
-            print(f"Ответ Gemini ({model}): {r.text}")
-            return ""
-        except requests.exceptions.Timeout:
-            print(f"Попытка {i} ({model}): таймаут...")
-            time.sleep(2)
-            continue
-        except Exception as e:
-            print(f"Ошибка Gemini API ({model}): {e}")
-            return ""
+    if GROQ_API_KEY:
+        print("Gemini недоступен, переключаюсь на Groq...")
+        return analyze_with_groq(user_content)
 
     return ""
 
