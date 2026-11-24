@@ -99,18 +99,20 @@ def analyze_with_groq(user_content: str) -> str:
                 "Content-Type": "application/json",
             },
             json={
-                "model": "llama-3.3-70b-versatile",
+                "model": "openai/gpt-oss-120b",
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": user_content},
                 ],
                 "temperature": 0.3,
-                "max_tokens": 600,
+                "max_completion_tokens": 2048,
+                "reasoning_effort": "low",
+                "include_reasoning": False,
             },
             timeout=15,
         )
         if r.ok:
-            return r.json()["choices"][0]["message"]["content"].strip()
+            return (r.json()["choices"][0]["message"].get("content") or "").strip()
         print(f"Ошибка Groq API ({r.status_code}): {r.text}")
     except Exception as e:
         print(f"Ошибка Groq API: {e}")
@@ -210,12 +212,12 @@ def fmt(w: dict) -> str:
         f"-------------------\n"
         f"📝 {esc(desc)}\n"
         f"-------------------\n"
-        f"💬 Предложений: {esc(w.get('kwork_count'))}\n"
         f"🕒 <b>Опубликовано:</b> {esc(pub_date)}\n"
+        f"💬 Предложений: {esc(w.get('kwork_count'))}\n"
         f"⏳ Осталось: {esc(w.get('timeLeft') or w.get('date_expire'))}\n"
         f"👤 <b>Покупатель:</b> {esc(u.get('username'))}\n"
-        f"📊 Размещено проектов: {esc(ud.get('wants_count'))}\n"
         f"✅ Процент найма: {esc(ud.get('wants_hired_percent'))}%\n"
+        f"📊 Размещено проектов: {esc(ud.get('wants_count'))}\n"
         f"-------------------"
         f"{ai_block}"
     )
