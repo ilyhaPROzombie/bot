@@ -206,19 +206,33 @@ def fmt(w: dict) -> str:
         if ai_text else ""
     )
 
+    def fmt_money(val) -> str:
+        try:
+            return f"{int(float(val)):,}".replace(",", " ")
+        except (TypeError, ValueError):
+            return esc(val or 0)
+
+    price_str = fmt_money(price)
+    price_max_str = fmt_money(price_max)
+    if price_max and price_max_str != price_str:
+        budget_line = f"💰 Бюджет: <b>{price_str} ₽</b> (до {price_max_str} ₽)"
+    else:
+        budget_line = f"💰 Бюджет: <b>{price_str} ₽</b>"
+
+    raw_user = u.get("username")
+    user_link = (
+        f'<a href="https://kwork.ru/user/{esc(raw_user)}">{esc(raw_user)}</a>'
+        if raw_user
+        else "Неизвестно"
+    )
+
     return (
         f"🆕 <b>{esc(w.get('name'))}</b>\n\n"
-        f"💰 Бюджет: {esc(price)} ₽ (допустимо до {esc(price_max)} ₽)\n"
-        f"-------------------\n"
-        f"📝 {esc(desc)}\n"
-        f"-------------------\n"
-        f"🕒 <b>Опубликовано:</b> {esc(pub_date)}\n"
-        f"💬 Предложений: {esc(w.get('kwork_count'))}\n"
-        f"⏳ Осталось: {esc(w.get('timeLeft') or w.get('date_expire'))}\n"
-        f"👤 <b>Покупатель:</b> {esc(u.get('username'))}\n"
-        f"✅ Процент найма: {esc(ud.get('wants_hired_percent'))}%\n"
-        f"📊 Размещено проектов: {esc(ud.get('wants_count'))}\n"
-        f"-------------------"
+        f"{budget_line}\n\n"
+        f"📝 {esc(desc)}\n\n"
+        f"🕒 {esc(pub_date)} | осталось {esc(w.get('timeLeft') or w.get('date_expire'))}\n"
+        f"💬 Предложений: {esc(w.get('kwork_count') or 0)}\n"
+        f"👤 {user_link} | {esc(ud.get('wants_count') or 0)} проектов | найм {esc(ud.get('wants_hired_percent') or 0)}%"
         f"{ai_block}"
     )
 
