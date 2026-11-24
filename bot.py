@@ -4,11 +4,11 @@ import requests
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-# GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-# GEMINI_MODELS = [
-#     "gemini-flash-lite-latest",
-#     "gemini-flash-latest",
-# ]
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODELS = [
+    "gemini-flash-lite-latest",
+    "gemini-flash-latest",
+]
 
 SYSTEM_PROMPT = """Ты ассистент фрилансера-веб-разработчика (стек: HTML, CSS, JS, PHP, WordPress, ACF, Elementor, WooCommerce; услуги: верстка по Figma, доработки, сайты под ключ).
 Кратко оцени заказ с Kwork строго в 4 строки, БЕЗ Markdown (без **, *, #), максимум 450 символов:
