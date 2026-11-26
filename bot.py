@@ -204,14 +204,14 @@ def fmt(w: dict) -> str:
 
     price = w.get("priceLimit") or w.get("price_limit")
     price_max = w.get("possiblePriceLimit")
-    desc = re.sub(r"\s+", " ", w.get("description") or "")[:600]
+    desc = re.sub(r"\s+", " ", w.get("description") or "")[:2800]
     
     # поиск времени
     pub_date = get_pub_date(w)
 
     ai_text = analyze_project(w)
     ai_block = (
-        f"\n\n<blockquote expandable><b>Анализ заказа:</b>\n{esc(ai_text)}</blockquote>"
+        f"\n\n<blockquote><b>Анализ заказа:</b>\n{esc(ai_text)}</blockquote>"
         if ai_text else ""
     )
 
@@ -238,7 +238,7 @@ def fmt(w: dict) -> str:
     return (
         f"🆕 <b>{esc(w.get('name'))}</b>\n\n"
         f"{budget_line}\n\n"
-        f"📝 {esc(desc)}\n\n"
+        f"<blockquote expandable>📝 {esc(desc)}</blockquote>\n\n"
         f"🕒 {esc(pub_date)} | осталось {esc(w.get('timeLeft') or w.get('date_expire'))}\n"
         f"💬 Предложений: {esc(w.get('kwork_count') or 0)}\n"
         f"👤 {user_link} | {esc(ud.get('wants_count') or 0)} проектов | найм {esc(ud.get('wants_hired_percent') or 0)}%"
